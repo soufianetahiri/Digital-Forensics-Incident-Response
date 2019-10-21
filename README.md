@@ -15,3 +15,24 @@ A number of forensic artifacts are known for a number of operating systems.
 A large number of these are covered on the Digital Forensics Artifact Repository, and can be ingested both by humans and systems given the standard YAML format.
 
 - [ForensicArtifacts](https://github.com/ForensicArtifacts/artifacts/tree/master/data "ForensicArtifacts")
+# Windows Cheat Sheet
+## Order of Volatility
+If performing Evidence Collection rather than IR, respect the order of volatility as defined in: rfc3227
+
+- registers, cache
+- routing table, arp cache, process table, kernel statistics, memory
+- temporary file systems
+- disk
+- remote logging and monitoring data that is relevant to the system in question
+- physical configuration, network topology
+- archival media
+## Memory Files (Locked by OS during use)
+- hiberfil.sys (RAM stored during machine hibernation)
+
+- %SystemRoot%\hiberfil.sys
+- pagefile.sys (Virtual memory used by Windows)
+
+- %SystemDrive%\pagefile.sys
+swapfile.sys (Virtual memory used by Windows Store Apps)
+
+- %SystemDrive%\swapfile.sys
