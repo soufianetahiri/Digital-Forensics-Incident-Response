@@ -33,6 +33,7 @@ If performing Evidence Collection rather than IR, respect the order of volatilit
 - pagefile.sys (Virtual memory used by Windows)
 
 - %SystemDrive%\pagefile.sys
+
 swapfile.sys (Virtual memory used by Windows Store Apps)
 
 - %SystemDrive%\swapfile.sys
