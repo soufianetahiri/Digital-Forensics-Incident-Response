@@ -367,3 +367,5 @@ ls "C:\Users\[User]\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startu
 > import-module bitstransfer
 Get-BitsTransfer -AllUsers | Remove-BitsTransfer
 
+## Find files without extensions
+> Get-ChildItem -Path C:\Users\[user]\AppData -Recurse -Exclude *.* -File -Force -ea SilentlyContinue
