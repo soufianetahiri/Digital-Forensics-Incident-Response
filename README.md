@@ -132,4 +132,149 @@ fsutil fsinfo drives
 
 > psinfo -accepteula -s -h -d
 
+## Obtain list of all files on a computer
+> tree C:\ /F > output.txt
+dir C:\ /A:H /-C /Q /R /S /X
+
+## User and admin information
+> whoami
+net users
+net localgroup administrators
+net group /domain [groupname]
+net user /domain [username]
+wmic sysaccount
+wmic useraccount get name,SID
+wmic useraccount list
+
+## Logon information
+> wmic netlogin list /format:List
+
+## NT Domain/Network Client Information
+> wmic ntdomain get /all /format:List
+wmic netclient get /all /format:List
+nltest /trusted_domains
+
+## Firewall Information
+
+> netsh Firewall show state
+netsh advfirewall firewall show rule name=all dir=in type=dynamic
+netsh advfirewall firewall show rule name=all dir=out type=dynamic
+netsh advfirewall firewall show rule name=all dir=in type=static
+netsh advfirewall firewall show rule name=all dir=out type=dynamic
+
+## Pagefile information
+> wmic pagefile
+
+## Group and access information
+(Accesschk requires accesschk64.exe or accesschk.exe from sysinternals):
+
+> net localgroup
+accesschk64 -a *
+
+## RecentDocs Information [Special thanks Barnaby Skeggs](https://twitter.com/barnabyskeggs "Special thanks Barnaby Skeggs")
+
+*Note: Run with Powershell, get SID and user information with ‘wmic useraccount get name,SID’
+
+> $SID = "S-1-5-21-1111111111-11111111111-1111111-11111"; $output = @(); Get-Item -Path "Registry::HKEY_USERS\$SID\Software\Microsoft\Windows\CurrentVersion\Explorer\RecentDocs" | Select-Object -ExpandProperty property | ForEach-Object {$i = [System.Text.Encoding]::Unicode.GetString((gp "Registry::HKEY_USERS\$SID\Software\Microsoft\Windows\CurrentVersion\Explorer\RecentDocs" -Name $_).$_); $i = $i -replace '[^a-zA-Z0-9 \.\-_\\/()~ ]', '\^'; $output += $i.split('\^')[0]}; $output | Sort-Object -Unique
+
+## Startup process information
+> wmic startup list full
+wmic startup list brief
+Get-CimInstance Win32_StartupCommand | Select-Object Name, command, Location, User | FL
+
+## Scheduled task/job information
+
+> at (For older OS)
+schtasks
+schtasks /query /fo LIST /v
+schtasks /query /fo LIST /v | findstr "Task To Run:"
+schtasks /query /fo LIST /v | findstr "appdata"
+schtasks /query /fo LIST /v | select-string "Enabled" -CaseSensitive -Context 10,0 | findstr "exe"
+schtasks /query /fo LIST /v | select-string "Enabled" -CaseSensitive -Context 10,0 | findstr "Task"
+schtasks /query /fo LIST /v | Select-String "exe" -Context 2,27 
+wmic job get Name, Owner, DaysOfMonth, DaysOfWeek, ElapsedTime, JobStatus, StartTime, Status
+
+Powershell:
+
+> Get-ScheduledTask
+gci -path C:\windows\system32\tasks |Select-String Command|FT Line, Filename
+
+## Remediate malicious scheduled tasks
+
+> schtasks /Delete /TN [taskname] /F
+
+Powershell:
+
+> Unregister-ScheduledTask -TaskName [taskname]
+Unregister-ScheduledTask -TaskPath [taskname]
+
+## Quick overview of persistent locations ([AutoRuns](https://docs.microsoft.com/en-us/sysinternals/downloads/autoruns "AutoRuns"))
+
+> autorunsc.exe -accepteula -a * -c -h -v -m > autoruns.csv
+autorunsc.exe -accepteula -a * -c -h -v -m -z 'E:\Windows' > autoruns.csv
+
+## Persistence and Automatic Load/Run Reg Keys
+Replace: “*reg query*” with “*Get-ItemProperty -Path HK:*" in Powershell*
+
+e.g.: **Get-Item -Path HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run**
+
+**User Registry (NTUSER.DAT HIVE)** - Commonly located at: C:\Users[username] *Note: These are setup for querying the current users registry only (HKCU), to query others you will need to load them from the relevant NTUSER.DAT file and then query them.
+
+
+> reg query "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Run"
+reg query "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnce"
+reg query "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnceEx"
+reg query "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer\Run"
+reg query "HKCU\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Windows" /f run
+reg query "HKCU\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Windows" /f load
+reg query "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders"
+reg query "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Windows\Scripts"
+reg query "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer\RecentDocs"
+reg query "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer\RunMRU"
+reg query "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\RunMRU"
+reg query "HKCU\SOFTWARE\AcroDC"
+reg query "HKCU\SOFTWARE\Itime"
+reg query "HKCU\SOFTWARE\info"
+reg query "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer\User Shell Folders"
+reg query "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Applets\RegEdit" /v LastKey
+reg query "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\ComDlg32\OpenSavePidlMRU" /s
+reg query "HKCU\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon\Shell"
+reg query "HKCU\SOFTWARE\Microsoft\Windows\currentversion\run"
+reg query "HKCU\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Terminal Server\Install\Software\Microsoft\Microsoft\Windows\CurrentVersion\Run"
+reg query "HKCU\Software\Microsoft\Windows NT\CurrentVersion\Terminal Server\Install\Software\Microsoft\Microsoft\Windows\CurrentVersion\RunOnce"
+reg query "HKCU\SOFTWARE\Microsoft\Office\[officeversion]\[word/excel/access etc]\Security\AccessVBOM"
+	reg query "HKCU\SOFTWARE\Microsoft\Office\15.0\Excel\Security\AccessVBOM
+	reg query "HKCU\SOFTWARE\Microsoft\Office\15.0\Word\Security\AccessVBOM
+	reg query "HKCU\SOFTWARE\Microsoft\Office\15.0\Powerpoint\Security\AccessVBOM
+	reg query "HKCU\SOFTWARE\Microsoft\Office\15.0\Access\Security\AccessVBOM
+
+**Local Machine (SOFTWARE HIVE)**
+
+> reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Run"
+reg query "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon"
+reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnce"
+reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnceEx"
+reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\RunServicesOnce"
+reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\RunServices"
+reg query "HKLM\SOFTWARE\Policies\Microsoft\Windows\System\Scripts"
+reg query "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Windows" /f AppInit_DLLs
+reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer\Run"
+reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Win\Userinit"
+reg query "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options"
+reg query "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options" /s
+reg query "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\SilentProcessExit" /s
+reg query "HKLM\SOFTWARE\Classes\piffile\shell\open\command"
+reg query "HKLM\SOFTWARE\Classes\exefile\shell\open\Command"
+reg query "HKLM\SOFTWARE\Classes\htafile\shell\open\Command"
+reg query "HKLM\SOFTWARE\wow6432node\Microsoft\Windows\CurrentVersion\policies\explorer\run"
+reg query "HKLM\SOFTWARE\wow6432node\Microsoft\Windows\CurrentVersion\run"
+reg query "HKLM\Software\Wow6432Node\Microsoft\Windows NT\CurrentVersion\Windows"
+reg query "HKLM\SOFTWARE\Microsoft\Office\[officeversion]\[word/excel/access etc]\Security\AccessVBOM"
+	reg query "HKLM\SOFTWARE\Microsoft\Office\15.0\Excel\Security\AccessVBOM
+	reg query "HKLM\SOFTWARE\Microsoft\Office\15.0\Word\Security\AccessVBOM
+	reg query "HKLM\SOFTWARE\Microsoft\Office\15.0\Powerpoint\Security\AccessVBOM
+	reg query "HKLM\SOFTWARE\Microsoft\Office\15.0\Access\Security\AccessVBOM
+
+
+
 
