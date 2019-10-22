@@ -72,3 +72,64 @@ These can be bundled with PSEXEC to execute on a remote PC; however, this will c
 
 > psexec \\remotepcname -c DumpIt.exe
 
+## Magnet Forensics (Mostly GUI)
+- [ Magnet Forensics Tools](https://www.magnetforensics.com/resources/?cat=Free%20Tool " Magnet Forensics Tools")
+- [Magnet RAM Capture](https://www.magnetforensics.com/free-tool-magnet-ram-capture "Magnet RAM Capture")
+- [Magnet Process Capture](https://www.magnetforensics.com/resources/magnet-process-capture/ "Magnet Process Capture")
+
+# Imaging Live Machines
+## [ FTK Imager (Cmd version, mostly GUI for new versions)](https://accessdata.com/product-download "## FTK Imager (Cmd version, mostly GUI for new versions)")
+
+> ftkimager --list-drives
+ftkimager \\.\PHYSICALDRIVE0 "[Location]\Case" --e01
+ftkimager [source] [destination]
+ftkimager \\.\PHYSICALDRIVE0 "[Location]\Case" --e01 --outpass securepasswordinsertedhere 
+
+## DD
+> dd.exe --list
+dd.exe if=/dev/<drive> of=Image.img bs=1M
+dd.exe if=\\.\<OSDrive>: of=<drive>:\<name>.img bs=1M --size --progress
+(LINUX) sudo dd if=/dev/<OSDrive> of=/mnt/<name>.ddimg bs=1M conv=noerror,sync
+
+# Live Windows IR/Triage
+CMD and WMIC (Windows Management Instrumentation Command-Line) Note: less information can be gathered by using ‘list brief’.
+
+## Interact with remote machine
+> wmic /node:[IP] process call create "powershell enable-psremoting -force"
+
+Powershell:
+> Enter-PSSession -ComputerName [IP]
+
+PSExec:
+> PsExec: psexec \\IP -c cmd.exe
+
+https://docs.microsoft.com/en-us/powershell/module/microsoft.powershell.core/enter-pssession?view=powershell-6
+
+## System information
+
+> echo %DATE% %TIME%
+date /t
+time /t
+systeminfo
+wmic computersystem list full
+wmic /node:localhost product list full /format:csv
+wmic softwarefeature get name,version /format:csv
+wmic softwareelement get name,version /format:csv
+reg query "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion" /s
+echo %PATH%
+SET
+wmic bootconfig get /all /format:List
+wmic computersystem get name, domain, manufacturer, model, numberofprocessors,primaryownername,username,roles,totalphysicalmemory /format:list
+wmic timezone get Caption, Bias, DaylightBias, DaylightName, StandardName
+wmic recoveros get /all /format:List
+wmic os get /all /format:list
+wmic partition get /all /format:list
+wmic logicaldisk get /all /format:list
+wmic diskdrive get /all /format:list
+fsutil fsinfo drives
+
+(psinfo requires sysinternals psinfo.exe):
+
+> psinfo -accepteula -s -h -d
+
+
