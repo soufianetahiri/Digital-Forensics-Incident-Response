@@ -37,3 +37,38 @@ If performing Evidence Collection rather than IR, respect the order of volatilit
 swapfile.sys (Virtual memory used by Windows Store Apps)
 
 - %SystemDrive%\swapfile.sys
+## [Binalyze IREC Evidence Collector](https://binalyze.com/products/irec "Binalyze IREC Evidence Collector") (GUI or CommandLine)
+> IREC.exe --license AAAA-BBBB-CCDD-DDDD --profile memory
+
+Note: Can be used as an all in one collector (License required for full collection, free version available).
+
+[Latest documentation](https://irec.readthedocs.io/en/latest/commandline.html "Latest documentation")
+
+##[ Belkasoft Live RAM Capturer](https://belkasoft.com/get?product=ram " Belkasoft Live RAM Capturer")
+> RamCapture64.exe "output.mem"
+
+OR for 32 bit OS
+
+> RamCapture32.exe "output.mem"
+
+## Redline
+Excellent resource:
+> https://resources.infosecinstitute.com/memory-analysis-using-redline/
+
+## Memoryze
+
+> MemoryDD.bat --output [LOCATION]
+
+## Comae DumpIT
+> DumpIt.exe /O [LOCATION]
+
+	- Used for getting a memory crash file (Useful for analysis with both windbg and volatility)
+	
+DumpIt.exe /O [LOCATION]\mem.raw /T RAW
+
+	- Used for getting a raw memory dump (Considered a legacy format)
+
+These can be bundled with PSEXEC to execute on a remote PC; however, this will copy the file to the remote PC for executing. There’s limitations if the tool requires other drivers or files to execute (such as RamCapture). An example command may be:
+
+> psexec \\remotepcname -c DumpIt.exe
+
