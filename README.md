@@ -276,5 +276,94 @@ reg query "HKLM\SOFTWARE\Microsoft\Office\[officeversion]\[word/excel/access etc
 	reg query "HKLM\SOFTWARE\Microsoft\Office\15.0\Access\Security\AccessVBOM
 
 
+Don't be afraid to use “*findstr*” to find entries of interest, for example file extensions which may also invoke malicious executables when run, or otherwise.
 
+> reg query "HKLM\SOFTWARE\Classes" | findstr "file"
+reg query HKCR\CLSID\{AB8902B4-09CA-4bb6-B78D-A8F59079A8D5} /s
+reg query HKCR\AppID\ /s | findstr "exe"
+
+**Local Machine (SYSTEM HIVE)**
+
+Note: This not only contains services, but also malicious drivers which may run at startup (these are in the form of “.sys” files and are generally loaded from here: \SystemRoot\System32\drivers)
+
+> reg query "HKLM\SYSTEM\CurrentControlSet\Services\[Random_name]\imagePath"
+reg query "HKLM\SYSTEM\CurrentControlSet\Services\ /s /f "*.exe"
+reg query "HKLM\SYSTEM\CurrentControlSet\Services" /s | findstr "ImagePath" | findstr ".exe"
+reg query "HKLM\SYSTEM\CurrentControlSet\Services" /s | findstr "ImagePath" | findstr ".sys"
+Get-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Services\*" | FL DisplayName,ImagePath,ObjectName
+gci -Path C:\Windows\system32\drivers -include *.sys -recurse -ea 0 -force | Get-AuthenticodeSignature
+gci -Path C:\Windows\system32\drivers -include *.sys -recurse -ea 0 -force | Get-FileHash
+
+## Locate all user registry keys
+
+> $UserProfiles = Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList\*" | Where {$_.PSChildName -match "S-1-5-21-(\d+-?){4}$" } | Select-Object @{Name="SID"; Expression={$_.PSChildName}}, @{Name="UserHive";Expression={"$($_.ProfileImagePath)\ntuser.dat"}}
+
+## Load all users registry keys from their ntuser.dat file (perform above first)
+
+> Foreach ($UserProfile in $UserProfiles) {If (($ProfileWasLoaded = Test-Path Registry::HKEY_USERS\$($UserProfile.SID)) -eq $false) {reg load HKU\$($UserProfile.SID) $($UserProfile.UserHive) | echo "Successfully loaded: $($UserProfile.UserHive)"}}
+
+## Query all users run key
+
+> Foreach ($UserProfile in $UserProfiles) {reg query HKU\$($UserProfile.SID)\SOFTWARE\Microsoft\Windows\CurrentVersion\Run}
+
+
+
+
+## Unload all users registry keys
+
+> [gc]::Collect()
+Foreach ($UserProfile in $UserProfiles) {reg unload HKU\$($UserProfile.SID)}
+
+## Remediate Automatic Load/Run Reg Keys
+> reg delete [keyname] /v [ValueName]
+reg delete [keyname]
+Foreach ($UserProfile in $UserProfiles) {reg delete HKU\$($UserProfile.SID)\SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnce}
+
+Powershell:
+
+> Remove-ItemProperty -Path "[Path]" -Name "[name]"
+
+## Persistent file locations of interest
+
+> %localappdata%\<random>\<random>.<4-9 file ext>
+%localappdata%\<random>\<random>.lnk
+%localappdata%\<random>\<random>.bat
+%appdata%\<random>\<random>.<4-9 file ext>
+%appdata%\<random>\<random>.lnk
+%appdata%\<random>\<random>.bat
+%appdata%\<random>\<random>.bat
+%SystemRoot%\<random 4 chars starting with digit>
+%appdata%\Roaming\Microsoft\Windows\Start Menu\Programs\Startup\*.lnk
+%SystemRoot%\System32\<randomnumber>\
+%SystemRoot%\System32\tasks\<randomname>
+%SystemRoot%\\<randomname>
+C:\Users\[user]\appdata\roaming\[random]
+C:\Users\Public\*
+
+You can scan these directories for items of interest e.g. unusual exe, dll, bat, lnk etc files with:
+
+
+> dir /s /b %localappdata%\*.exe | findstr /e .exe
+dir /s /b %appdata%\*.exe | findstr /e .exe
+dir /s /b %localappdata%\*.dll | findstr /e .dll
+dir /s /b %appdata%\*.dll | findstr /e .dll
+dir /s /b %localappdata%\*.bat | findstr /e .bat
+dir /s /b "%appdata%\Microsoft\Windows\Start Menu\Programs\Startup\" | findstr /e .lnk
+dir /s /b "C:\Users\Public\" | findstr /e .exe
+dir /s /b "C:\Users\Public\" | findstr /e .lnk
+dir /s /b "C:\Users\Public\" | findstr /e .dll
+dir /s /b "C:\Users\Public\" | findstr /e .bat
+ls "C:\Users\[User]\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup" | findstr /e .lnk
+
+## Locate BITSAdmin Persistence
+
+> bitsadmin /list /allusers /verbose
+
+
+## Remove BITSAdmin Persistence
+
+> bitsadmin /reset /allusers
+
+> import-module bitstransfer
+Get-BitsTransfer -AllUsers | Remove-BitsTransfer
 
