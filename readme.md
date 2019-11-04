@@ -369,3 +369,50 @@ Get-BitsTransfer -AllUsers | Remove-BitsTransfer
 
 ## Find files without extensions
 > Get-ChildItem -Path C:\Users\[user]\AppData -Recurse -Exclude *.* -File -Force -ea SilentlyContinue
+
+## Remediate malicious files
+> rmdir %localappdata%\maliciousdirectory\ /s
+del /F %localappdata%\maliciousdirectory\malware.exe
+
+Powershell:
+
+> Remove-Item [C:\Users\Public\*.exe]
+Remove-Item -Path [C:\Users\Public\malware.exe] -Force
+Get-ChildItem * -Include *.exe -Recurse | Remove-Item
+
+## Detect Persistent WMI Subscriptions
+> Get-WmiObject -Class __FilterToConsumerBinding -Namespace root\subscription
+Get-WmiObject -Class __EventFilter -Namespace root\subscription
+Get-WmiObject -Class __EventConsumer -Namespace root\subscription
+
+
+## Remediate Persistent WMI Subscriptions
+> Get-WMIObject -Namespace root\subscription -Class __EventFilter -Filter "Name='[Name]'" | Remove-WmiObject
+Get-WMIObject -Namespace root\subscription -Class CommandLineEventConsumer -Filter "Name='[Name]'" | Remove-WmiObject
+Get-WMIObject -Namespace root\subscription -Class __FilterToConsumerBinding -Filter "__Path like '%[Name]%'" | Remove-WmiObject 
+
+##[ Enumerate WMI Namespaces](https://learn-powershell.net/2014/05/09/quick-hits-list-all-available-wmi-namespaces-using-powershell/ "## Enumerate WMI Namespaces")
+> 
+Function Get-WmiNamespace ($Path = 'root')
+{
+	foreach ($Namespace in (Get-WmiObject -Namespace $Path -Class __Namespace))
+	{
+		$FullPath = $Path + "/" + $Namespace.Name
+		Write-Output $FullPath
+		Get-WmiNamespace -Path $FullPath
+	}
+}
+Get-WMINamespace -Recurse
+
+## Mimikatz Detection
+The below represent registry keys which make it more difficult for Mimikatz to work. Modification of these keys may indicate an attacker trying to execute Mimikatz within an environment if they were set to their more secure state. Always test prior to changing registry keys such as these in a production environment to ensure nothing breaks.
+
+> HKLM\SYSTEM\CurrentControlSet\Control\SecurityProviders\WDigest
+	- “UseLogonCredential” should be 0 to prevent the password in LSASS
+HKLM\SYSTEM\CurrentControlSet\Control\Lsa
+	- “RunAsPPL” should be set to dword:00000001 to enable LSA Protection which prevents non-protected processes from interacting with LSASS. 
+	- Mimikatz can remove these flags using a custom driver called mimidriver. This uses the command **!+** and then **!processprotect /remove /process:lsass.exe** by default so tampering of this registry key can be indicative of Mimikatz activity.
+
+The [Mimikatz Yara rule](https://github.com/gentilkiwi/mimikatz/blob/master/kiwi_passwords.yar "Mimikatz Yara rule") may also prove useful.
+
+
