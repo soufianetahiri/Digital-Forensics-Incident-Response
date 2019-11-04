@@ -415,4 +415,43 @@ HKLM\SYSTEM\CurrentControlSet\Control\Lsa
 
 The [Mimikatz Yara rule](https://github.com/gentilkiwi/mimikatz/blob/master/kiwi_passwords.yar "Mimikatz Yara rule") may also prove useful.
 
+## Installed Updates
+(WMI Quick Fix Engineering)
+
+> wmic qfe
+
+## Installed Software/Packages
+> reg query HKLM\SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\ /s | findstr "DisplayName"
+reg query HKLM\Software\Microsoft\Windows\CurrentVersion\Uninstall\ /s | findstr "DisplayName"
+wmic product get name,version /format:csv
+wmic product get /ALL
+dism /online /get-packages
+
+Powershell: Full List for all users using uninstall keys in registry
+
+> $(Get-ItemProperty HKLM:\Software\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*; Get-ItemProperty HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*;New-PSDrive -Name HKU -PSProvider Registry -Root Registry::HKEY_USERS| Out-Null;$UserInstalls += gci -Path HKU: | where {$_.Name -match 'S-\d-\d+-(\d+-){1,14}\d+$'} | foreach {$_.PSChildName };$(foreach ($User in $UserInstalls){Get-ItemProperty HKU:\$User\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*});$UserInstalls = $null;try{Remove-PSDrive -Name HKU}catch{};)|where {($_.DisplayName -ne $null) -and ($_.Publisher -ne $null)} | Select DisplayName,DisplayVersion,Publisher,InstallDate,UninstallString |FT
+
+## Process information
+(pslist requires sysinternals pslist.exe):
+> wmic process list full /format:csv
+wmic process get name,parentprocessid,processid /format:csv
+wmic process get ExecutablePath,processid /format:csv
+wmic process get name,ExecutablePath,processid,parentprocessid /format:csv | findstr /I "appdata"
+wmic process where processid=[PID] get parentprocessid
+wmic process where processid=[PID] get commandline
+wmic process where "commandline is not null and commandline!=''" get name,commandline /format:csv
+Get-WmiObject win32_process -Filter "name like '%powershell.exe'" | select processId,commandline|FL
+pslist
+
+## Scan for malware with Windows Defender
+> "%ProgramFiles%\Windows Defender\MpCmdRun.exe" -Scan -ScanType 1
+"%ProgramFiles%\Windows Defender\MpCmdRun.exe" -Scan -ScanType 2
+"%ProgramFiles%\Windows Defender\MpCmdRun.exe" -Scan -ScanType 3 -File C:\Users\[username]\AppData\Local\Temp
+
+Note: Types are as follows
+1. Quick scan
+2. Full system scan
+3. File and directory custom scan
+
+
 
