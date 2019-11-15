@@ -1,7 +1,7 @@
 # Digital-Forensics-Incident-Response
 Digital Forensics and Incident Response
 
-This Post is mainly the work of by Jai Minton (https://twitter.com/CyberRaiju)
+This Post is mainly the work of Jai Minton (https://twitter.com/CyberRaiju)
 
 # Introduction
 This post is inspired by all the hard working DFIR, and more broadly security professionals, who have put in the hard yards over the years to discuss in depth digital forensics and incident response.
